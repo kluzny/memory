@@ -4,3 +4,10 @@ export interface Player {
   score: number;
   active: boolean;
 }
+
+export interface Card {
+  value: string;
+  key: number;
+  found: boolean;
+  flipped: boolean;
+}

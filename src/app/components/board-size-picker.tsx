@@ -1,11 +1,11 @@
 import { Dispatch, SetStateAction } from "react";
 
 const availableButtonSizes = {
-  Small: 4,
-  Medium: 5,
-  Large: 6,
-  Super: 7,
-  Huge: 8,
+  Small: 4, // 16
+  Medium: 5, // 25 -1
+  Large: 6, // 36
+  Super: 7, // 49 -1
+  Huge: 8, // 64
 };
 
 interface BoardSizePickerProps {

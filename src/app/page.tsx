@@ -4,8 +4,10 @@ import { useState } from "react";
 
 import Setup from "@/app/components/setup";
 import Players from "@/app/components/players";
-import { Player } from "@/types";
+import Board from "@/app/components/board";
+import { Player, Card } from "@/types";
 
+// TODO: move state machine stuff out to another file
 enum MachineStates {
   setup = "setup",
   playing = "playing",
@@ -13,7 +15,6 @@ enum MachineStates {
 }
 
 enum MachineActions {
-  configure = "configure",
   start = "start",
   finish = "finish",
   reset = "reset",
@@ -64,14 +65,76 @@ const scaffoldPlayer: (name: string) => Player = (name: string) => {
   };
 };
 
+const scaffoldCard: (value: string, key: number) => Card = (
+  value: string,
+  key: number
+) => {
+  return {
+    value: value,
+    key: key,
+    found: false,
+    flipped: false,
+  };
+};
+
 export default function Home() {
   const [state, setState] = useState<MachineState>(MachineStates.setup);
   const [boardSize, setBoardSize] = useState<number>(4);
   const [playerData, setPlayerData] = useState<Player[]>([]);
+  const [cards, setCards] = useState<Card[]>([]);
 
   const addPlayer = (name: string) => {
     console.log(`adding player: ${name}`);
     setPlayerData([...playerData, scaffoldPlayer(name)]);
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const shuffleArray = (arr: Array<any>) => {
+    arr.sort(() => Math.random() - 0.5);
+  };
+
+  const generateCards = () => {
+    // generate M pairs from a NxN where N is the boardSize
+    // for odd N^2, subtract 1 to get an even number of pairs
+    let numberOfCards = boardSize * boardSize;
+    if (numberOfCards % 2 == 1) {
+      numberOfCards -= 1;
+    }
+    const numberOfPairs = numberOfCards / 2;
+
+    const newCards: Card[] = [];
+
+    for (let i = 0; i < numberOfPairs; i++) {
+      newCards.push(scaffoldCard(i.toString(), 2 * i));
+      newCards.push(scaffoldCard(i.toString(), 2 * i + 1));
+    }
+
+    shuffleArray(newCards);
+    setCards(newCards);
+  };
+
+  const startGame = () => {
+    console.log("starting game");
+    generateCards();
+    setState((state) => getNextState(state, MachineActions.start));
+  };
+
+  const updateCard = (updatedCard: Card) => {
+    const newCards = cards.map((card) => {
+      if (card.key == updatedCard.key) {
+        return updatedCard;
+      } else {
+        return card;
+      }
+    });
+
+    setCards(newCards);
+  };
+
+  const clickCard = (event: React.MouseEvent, card: Card) => {
+    card.flipped = true;
+
+    updateCard(card);
   };
 
   return (
@@ -90,7 +153,11 @@ export default function Home() {
               playerCount={Object.keys(playerData).length}
               boardSize={boardSize}
               setBoardSize={setBoardSize}
+              startGame={startGame}
             />
+          )}
+          {state === MachineStates.playing && (
+            <Board boardSize={boardSize} cards={cards} clickCard={clickCard} />
           )}
         </div>
       </div>

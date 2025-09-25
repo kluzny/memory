@@ -10,10 +10,10 @@ export default function PlayerCard({ player }: PlayerCardProps) {
   return (
     <div
       className={
-        "p-4 rounded-md bg-blue-500 " + (player.active ? activeClasses : "")
+        "p-4 rounded-md bg-blue-700 " + (player.active ? activeClasses : "")
       }
     >
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-between items-center mb-4 text-white">
         <h2 className="text-3xl underline decoration-dashed">{player.name}</h2>
         <p className="text-2xl">Score: {player.score}</p>
       </div>
