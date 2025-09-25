@@ -2,56 +2,102 @@
 
 import { useState } from "react";
 
-import Player from "@/app/components/player";
-import Board from "@/app/components/board";
-import BoardSizePicker from "./components/board-size-picker";
+import Setup from "@/app/components/setup";
+import Players from "@/app/components/players";
+
+enum MachineStates {
+  setup = "setup",
+  playing = "playing",
+  win = "win",
+}
+
+enum MachineActions {
+  configure = "configure",
+  start = "start",
+  finish = "finish",
+  reset = "reset",
+}
+
+type MachineState = keyof typeof MachineStates;
+type MachineAction = keyof typeof MachineActions;
+
+type StateMachine = {
+  [state in MachineStates]: {
+    [action in MachineActions]?: MachineState;
+  };
+};
+
+const stateMachine: StateMachine = {
+  [MachineStates.setup]: {
+    [MachineActions.start]: MachineStates.playing,
+  },
+  [MachineStates.playing]: {
+    [MachineActions.finish]: MachineStates.win,
+    [MachineActions.reset]: MachineStates.setup,
+  },
+  [MachineStates.win]: {
+    [MachineActions.reset]: MachineStates.setup,
+  },
+};
+
+const getNextState = (state: MachineState, action: MachineAction) => {
+  const newState = stateMachine[state][action];
+
+  if (!newState) {
+    throw new Error(`${action} is not a valid step from ${state}`);
+  }
+
+  return newState;
+};
 
 function bigRandInt() {
   return Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
 }
 
-const playerData = [
-  {
+interface Player {
+  id: number;
+  name: string;
+  score: number;
+  active: boolean;
+}
+
+const scaffoldPlayer: (name: string) => Player = (name: string) => {
+  return {
     id: bigRandInt(),
-    name: "Ada",
-    score: 13,
-    active: true,
-  },
-  {
-    id: bigRandInt(),
-    name: "Alan",
-    score: 11,
-    active: false,
-  },
-  {
-    id: bigRandInt(),
-    name: "twitchbot4000",
+    name: name,
     score: 0,
     active: false,
-  },
-];
-
-const players = playerData.map((player) => (
-  <Player key={player.id} player={player} />
-));
+  };
+};
 
 export default function Home() {
-  const [boardSize, setBoardSize] = useState(0);
+  const [state, setState] = useState<MachineState>(MachineStates.setup);
+  const [boardSize, setBoardSize] = useState<number>(4);
+  const [playerData, setPlayerData] = useState<Player[]>([]);
+
+  const addPlayer = (name: string) => {
+    console.log(`adding player: ${name}`);
+    setPlayerData([...playerData, scaffoldPlayer(name)]);
+  };
 
   return (
     <div className="container mx-auto">
-      <div className="flex items-baseline justify-center space-x-2 text-slate-600">
-        <h1 className="text-4xl my-4">Memory!</h1>
-        <h2 className="italic">A concentration game</h2>
-      </div>
+      <nav className="flex items-baseline justify-center space-x-2 text-blue-700">
+        <h1 className="text-6xl my-4">Memory!</h1>
+        <h2 className="italic text-2xl">A concentration game</h2>
+      </nav>
       <div className="flex w-full h-full space-x-4">
         <div className="w-2/5 h-full bg-orange-100 rounded-md space-y-4 p-4">
-          <div className="flex flex-col">{players}</div>
+          <Players playerData={playerData} addPlayer={addPlayer} />
         </div>
-        <div className="w-3/5 bg-red-500 p-8">
-          <BoardSizePicker setBoardSize={setBoardSize} />
-          <p className="text-8xl">Le Size: {boardSize}</p>
-          <Board />
+        <div className="w-3/5 bg-orange-100 rounded-md p-4">
+          {state === MachineStates.setup && (
+            <Setup
+              playerCount={Object.keys(playerData).length}
+              boardSize={boardSize}
+              setBoardSize={setBoardSize}
+            />
+          )}
         </div>
       </div>
     </div>

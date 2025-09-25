@@ -9,30 +9,41 @@ const availableButtonSizes = {
 };
 
 interface BoardSizePickerProps {
+  boardSize: number;
   setBoardSize: Dispatch<SetStateAction<number>>;
 }
 
 export default function BoardSizePicker({
+  boardSize,
   setBoardSize,
 }: BoardSizePickerProps) {
   const boardSizeButtons = Object.entries(availableButtonSizes).map(
-    ([name, size]) => (
-      <button
-        key={size}
-        onClick={() => {
-          setBoardSize(size);
-        }}
-        className="px-4 py-2 border-1 rounded-lg border-black bg-white hover:bg-gray-400"
-      >
-        {name}
-      </button>
-    )
+    ([name, size]) => {
+      let borderColor;
+      if (size == boardSize) {
+        borderColor = "border-pink-500";
+      } else {
+        borderColor = "border-blue-500";
+      }
+
+      return (
+        <button
+          key={size}
+          onClick={() => {
+            setBoardSize(size);
+          }}
+          className={`px-4 py-2 border-2 rounded-lg ${borderColor} bg-white hover:bg-pink-200`}
+        >
+          {name}
+        </button>
+      );
+    }
   );
 
   return (
-    <>
-      <h3>Choose the board size:</h3>
+    <div className="flex flex-col justify-center items-center">
+      <h3 className="mb-2">Choose the game size:</h3>
       <div className="flex space-x-2">{boardSizeButtons}</div>
-    </>
+    </div>
   );
 }
