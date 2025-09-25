@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import Setup from "@/app/components/setup";
 import Players from "@/app/components/players";
+import { Player } from "@/types";
 
 enum MachineStates {
   setup = "setup",
@@ -52,13 +53,6 @@ const getNextState = (state: MachineState, action: MachineAction) => {
 
 function bigRandInt() {
   return Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
-}
-
-interface Player {
-  id: number;
-  name: string;
-  score: number;
-  active: boolean;
 }
 
 const scaffoldPlayer: (name: string) => Player = (name: string) => {

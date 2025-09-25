@@ -1,12 +1,18 @@
 import { useState } from "react";
 
-import Player from "@/app/components/player";
+import { Player } from "@/types";
+import PlayerCard from "@/app/components/player-card";
 
-export default function Players({ playerData, addPlayer }) {
+interface PlayerProps {
+  playerData: Player[];
+  addPlayer: (name: string) => void;
+}
+
+export default function Players({ playerData, addPlayer }: PlayerProps) {
   const [playerName, setPlayerName] = useState("");
 
   const players = playerData.map((player) => (
-    <Player key={player.id} player={player} />
+    <PlayerCard key={player.id} player={player} />
   ));
 
   const playerInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {

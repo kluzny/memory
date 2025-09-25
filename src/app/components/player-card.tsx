@@ -1,14 +1,12 @@
-interface PlayerProps {
-  player: {
-    name: string;
-    score: number;
-    active: boolean;
-  };
+import { Player } from "@/types";
+
+interface PlayerCardProps {
+  player: Player;
 }
 
 const activeClasses = "border-4 border-pink-500 rounded-lg";
 
-export default function Player({ player }: PlayerProps) {
+export default function PlayerCard({ player }: PlayerCardProps) {
   return (
     <div
       className={
