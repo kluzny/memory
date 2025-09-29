@@ -131,7 +131,7 @@ export default function Home() {
     setCards(newCards);
   };
 
-  const clickCard = (event: React.MouseEvent, card: Card) => {
+  const flipCard = (card: Card) => {
     card.flipped = true;
 
     updateCard(card);
@@ -157,7 +157,7 @@ export default function Home() {
             />
           )}
           {state === MachineStates.playing && (
-            <Board boardSize={boardSize} cards={cards} clickCard={clickCard} />
+            <Board boardSize={boardSize} cards={cards} flipCard={flipCard} />
           )}
         </div>
       </div>

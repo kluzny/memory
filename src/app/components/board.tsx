@@ -4,10 +4,10 @@ import StatefulCard from "./stateful-card";
 interface BoardProps {
   cards: Card[];
   boardSize: number;
-  clickCard: (event: React.MouseEvent, card: Card) => void;
+  flipCard: (card: Card) => void;
 }
 
-export default function Board({ boardSize, cards, clickCard }: BoardProps) {
+export default function Board({ boardSize, cards, flipCard }: BoardProps) {
   // needed to inform tailwind which utility classes to dynamically build
   const tailwindIsSilly: Record<number, string> = {
     4: "grid-cols-4",
@@ -19,7 +19,7 @@ export default function Board({ boardSize, cards, clickCard }: BoardProps) {
 
   const gridSize = tailwindIsSilly[boardSize];
   const cardComponents = cards.map((card) => {
-    return <StatefulCard key={card.key} card={card} clickCard={clickCard} />;
+    return <StatefulCard key={card.key} card={card} flipCard={flipCard} />;
   });
 
   return (
