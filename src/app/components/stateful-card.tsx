@@ -1,6 +1,8 @@
 import { Card } from "@/types";
 import animateCSS from "@/utilities/animate-css";
 import type { RefObject } from "react";
+import { useContext } from "react";
+import { DebugContext } from "@/contexts/DebugContext";
 
 interface StatefulCardProps {
   immutableRef: RefObject<boolean>;
@@ -8,13 +10,13 @@ interface StatefulCardProps {
   flipCard: (card: Card) => void;
 }
 
-const CHEAT = true; // TODO: false
-
 export default function StatefulCard({
   immutableRef,
   card,
   flipCard,
 }: StatefulCardProps) {
+  const isDebug = useContext(DebugContext);
+
   const size = "h-24 w-24";
   const border = "rounded-lg border-4 border-black";
   const display = "flex justify-center items-center";
@@ -52,7 +54,7 @@ export default function StatefulCard({
         className={`${size} ${border} ${display} ${hover} bg-violet-500 hover:bg-violet-600 hover:border-purple-300`}
         onClick={animateCardFlip}
       >
-        {CHEAT && <span className="text-sm">{card.value}</span>}
+        {isDebug && <span className="text-sm">{card.value}</span>}
       </button>
     );
   }

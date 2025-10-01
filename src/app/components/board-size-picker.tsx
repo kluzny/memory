@@ -1,7 +1,7 @@
-import { Dispatch, SetStateAction } from "react";
+import { Dispatch, SetStateAction, useContext } from "react";
+import { DebugContext } from "@/contexts/DebugContext";
 
-const availableButtonSizes = {
-  Xs: 2, // 4
+const availableButtonSizes: Record<string, number> = {
   Small: 4, // 16
   Medium: 5, // 25 -1
   Large: 6, // 36
@@ -18,6 +18,12 @@ export default function BoardSizePicker({
   boardSize,
   setBoardSize,
 }: BoardSizePickerProps) {
+  const isDebug = useContext(DebugContext);
+
+  if (isDebug) {
+    availableButtonSizes["XS"] = 2;
+  }
+
   const boardSizeButtons = Object.entries(availableButtonSizes).map(
     ([name, size]) => {
       let borderColor;
