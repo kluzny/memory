@@ -1,13 +1,20 @@
 import { Card } from "@/types";
 import StatefulCard from "./stateful-card";
+import type { RefObject } from "react";
 
 interface BoardProps {
+  immutableRef: RefObject<boolean>;
   cards: Card[];
   boardSize: number;
   flipCard: (card: Card) => void;
 }
 
-export default function Board({ boardSize, cards, flipCard }: BoardProps) {
+export default function Board({
+  immutableRef,
+  boardSize,
+  cards,
+  flipCard,
+}: BoardProps) {
   // needed to inform tailwind which utility classes to dynamically build
   const tailwindIsSilly: Record<number, string> = {
     4: "grid-cols-4",
@@ -19,7 +26,14 @@ export default function Board({ boardSize, cards, flipCard }: BoardProps) {
 
   const gridSize = tailwindIsSilly[boardSize];
   const cardComponents = cards.map((card) => {
-    return <StatefulCard key={card.key} card={card} flipCard={flipCard} />;
+    return (
+      <StatefulCard
+        immutableRef={immutableRef}
+        key={card.key}
+        card={card}
+        flipCard={flipCard}
+      />
+    );
   });
 
   return (

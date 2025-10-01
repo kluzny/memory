@@ -1,59 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useEffect, useState } from "react";
 
 import Setup from "@/app/components/setup";
 import Players from "@/app/components/players";
 import Board from "@/app/components/board";
 import { Player, Card } from "@/types";
+import generateCards from "@/utilities/deck-builder";
 
-// TODO: move state machine stuff out to another file
-enum MachineStates {
-  setup = "setup",
-  playing = "playing",
-  win = "win",
-}
-
-enum MachineActions {
-  start = "start",
-  finish = "finish",
-  reset = "reset",
-}
-
-type MachineState = keyof typeof MachineStates;
-type MachineAction = keyof typeof MachineActions;
-
-type StateMachine = {
-  [state in MachineStates]: {
-    [action in MachineActions]?: MachineState;
-  };
-};
-
-const stateMachine: StateMachine = {
-  [MachineStates.setup]: {
-    [MachineActions.start]: MachineStates.playing,
-  },
-  [MachineStates.playing]: {
-    [MachineActions.finish]: MachineStates.win,
-    [MachineActions.reset]: MachineStates.setup,
-  },
-  [MachineStates.win]: {
-    [MachineActions.reset]: MachineStates.setup,
-  },
-};
-
-const getNextState = (state: MachineState, action: MachineAction) => {
-  const newState = stateMachine[state][action];
-
-  if (!newState) {
-    throw new Error(`${action} is not a valid step from ${state}`);
-  }
-
-  return newState;
-};
+import {
+  MachineState,
+  MachineStates,
+  MachineActions,
+  getNextState,
+} from "@/types/states";
 
 function bigRandInt() {
   return Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
+}
+
+function randomArrayIndex(arr: unknown[]) {
+  return Math.floor(Math.random() * arr.length);
 }
 
 const scaffoldPlayer: (name: string) => Player = (name: string) => {
@@ -61,19 +28,7 @@ const scaffoldPlayer: (name: string) => Player = (name: string) => {
     id: bigRandInt(),
     name: name,
     score: 0,
-    active: false,
-  };
-};
-
-const scaffoldCard: (value: string, key: number) => Card = (
-  value: string,
-  key: number
-) => {
-  return {
-    value: value,
-    key: key,
-    found: false,
-    flipped: false,
+    matches: [],
   };
 };
 
@@ -82,41 +37,40 @@ export default function Home() {
   const [boardSize, setBoardSize] = useState<number>(4);
   const [playerData, setPlayerData] = useState<Player[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
+  const [initialPlayerOffset, setInitialPlayerOffset] = useState<number>(0);
+  const [turn, setTurn] = useState<number>(0);
+  const [currentPlayer, setCurrentPlayer] = useState<Player>();
+  const [selections, setSelections] = useState<Card[]>([]);
+  const [message, setMessage] = useState<string>("");
+  const immutableRef = useRef(false);
 
   const addPlayer = (name: string) => {
     console.log(`adding player: ${name}`);
-    setPlayerData([...playerData, scaffoldPlayer(name)]);
+    setPlayerData((currentPlayerData) => [
+      ...currentPlayerData,
+      scaffoldPlayer(name),
+    ]);
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const shuffleArray = (arr: Array<any>) => {
-    arr.sort(() => Math.random() - 0.5);
-  };
-
-  const generateCards = () => {
-    // generate M pairs from a NxN where N is the boardSize
-    // for odd N^2, subtract 1 to get an even number of pairs
-    let numberOfCards = boardSize * boardSize;
-    if (numberOfCards % 2 == 1) {
-      numberOfCards -= 1;
-    }
-    const numberOfPairs = numberOfCards / 2;
-
-    const newCards: Card[] = [];
-
-    for (let i = 0; i < numberOfPairs; i++) {
-      newCards.push(scaffoldCard(i.toString(), 2 * i));
-      newCards.push(scaffoldCard(i.toString(), 2 * i + 1));
-    }
-
-    shuffleArray(newCards);
-    setCards(newCards);
+  const nextPlayer = () => {
+    const nextPlayerIndex = (turn + initialPlayerOffset) % playerData.length;
+    return playerData[nextPlayerIndex];
   };
 
   const startGame = () => {
     console.log("starting game");
-    generateCards();
     setState((state) => getNextState(state, MachineActions.start));
+    resetGame();
+  };
+
+  const win = () => {
+    console.log("win");
+    setState((state) => getNextState(state, MachineActions.finish));
+  };
+
+  const setupGame = () => {
+    console.log("setupGame");
+    setState((state) => getNextState(state, MachineActions.reset));
   };
 
   const updateCard = (updatedCard: Card) => {
@@ -131,11 +85,108 @@ export default function Home() {
     setCards(newCards);
   };
 
+  const addMatchToPlayer = () => {
+    if (!currentPlayer) return;
+
+    currentPlayer.score += 1;
+
+    selections.forEach((card) => {
+      currentPlayer.matches.push(card);
+      card.owner = currentPlayer; // TODO: animate cards leaving
+      updateCard(card);
+    });
+  };
+
+  const nextTurn = () => {
+    setTurn((currentTurnCount) => currentTurnCount + 1);
+    const _nextPlayer: Player = nextPlayer();
+    setCurrentPlayer(_nextPlayer);
+    setSelections([]);
+    setMessage(`Choose a card ${_nextPlayer.name}`);
+  };
+
+  const goAgain = () => {
+    setSelections([]);
+    setMessage(`Choose a card ${currentPlayer?.name}`);
+  };
+
+  const resetBoard = () => {
+    // TODO: animate flips
+    selections.forEach((card: Card) => {
+      card.flipped = false;
+      updateCard(card);
+    });
+  };
+
   const flipCard = (card: Card) => {
     card.flipped = true;
-
     updateCard(card);
+    setSelections([...selections, card]);
   };
+
+  const randomizeStartingPlayer = () => {
+    setInitialPlayerOffset(randomArrayIndex(playerData));
+  };
+
+  const resetPlayerScores = () => {
+    playerData.forEach((player) => {
+      player.score = 0;
+      player.matches = [];
+    });
+  };
+
+  const resetGame = () => {
+    setTurn(0);
+    resetPlayerScores();
+    setCards(generateCards(boardSize));
+    randomizeStartingPlayer();
+    nextTurn();
+  };
+
+  const scaffoldPlayers = () => {
+    addPlayer("twitchbot4000");
+    addPlayer("jeanegrey");
+  };
+
+  useEffect(() => {
+    const checkForMatch = () => {
+      console.log({ selections });
+
+      if (selections.length < 2) {
+        immutableRef.current = false;
+        return;
+      }
+
+      if (selections[0].value === selections[1].value) {
+        setMessage("Match Found!");
+        addMatchToPlayer();
+        setTimeout(() => {
+          immutableRef.current = false;
+          goAgain();
+        }, 2000);
+      } else {
+        setMessage("Sorry, No Match");
+        setTimeout(() => {
+          resetBoard();
+          nextTurn();
+          immutableRef.current = false;
+        }, 2000);
+      }
+    };
+
+    checkForMatch();
+  }, [selections]);
+
+  useEffect(() => {
+    if (cards.length < 1 || state === MachineStates.win) {
+      return;
+    }
+
+    const unclaimedCards = cards.filter((card) => card.owner === undefined);
+    if (unclaimedCards.length == 0) {
+      win();
+    }
+  }, [cards]);
 
   return (
     <div className="container mx-auto">
@@ -145,7 +196,20 @@ export default function Home() {
       </nav>
       <div className="flex w-full h-full space-x-4">
         <div className="w-2/5 h-full bg-orange-100 rounded-md space-y-4 p-4">
-          <Players playerData={playerData} addPlayer={addPlayer} />
+          <p>Turn: {turn}</p>
+          <div className="flex justify-between items-center">
+            <button className="border-2 border-black" onClick={scaffoldPlayers}>
+              Scaffold Players
+            </button>
+            <button className="border-2 border-black" onClick={resetGame}>
+              Reset Game
+            </button>
+          </div>
+          <Players
+            playerData={playerData}
+            addPlayer={addPlayer}
+            activePlayer={currentPlayer}
+          />
         </div>
         <div className="w-3/5 bg-orange-100 rounded-md p-4">
           {state === MachineStates.setup && (
@@ -157,7 +221,34 @@ export default function Home() {
             />
           )}
           {state === MachineStates.playing && (
-            <Board boardSize={boardSize} cards={cards} flipCard={flipCard} />
+            <>
+              <header className="text-center text-2xl mb-4">{message}</header>
+              <Board
+                immutableRef={immutableRef}
+                boardSize={boardSize}
+                cards={cards}
+                flipCard={flipCard}
+              />
+            </>
+          )}
+          {state === MachineStates.win && (
+            <div className="flex flex-col justify-center items-center h-full space-y-4 animate__animated animate__zoomIn">
+              <h1 className="text-4xl animate_animated animate_rotateIn">
+                Congratulations
+              </h1>
+              <h1 className="text-8xl animate__animated animate__pulse animate__infinite">
+                {currentPlayer?.name}!
+              </h1>
+              <h2 className="text-2xl">
+                You won with {currentPlayer?.score} Points.
+              </h2>
+              <button
+                className="px-4 py-2 border-2 border-blue-500 rounded-lg bg-white hover:bg-pink-200 hover:border-pink-500"
+                onClick={setupGame}
+              >
+                Play Again?
+              </button>
+            </div>
           )}
         </div>
       </div>

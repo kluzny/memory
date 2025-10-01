@@ -6,14 +6,25 @@ import PlayerCard from "@/app/components/player-card";
 interface PlayerProps {
   playerData: Player[];
   addPlayer: (name: string) => void;
+  activePlayer?: Player;
 }
 
-export default function Players({ playerData, addPlayer }: PlayerProps) {
+export default function Players({
+  playerData,
+  addPlayer,
+  activePlayer,
+}: PlayerProps) {
   const [playerName, setPlayerName] = useState("");
 
-  const players = playerData.map((player) => (
-    <PlayerCard key={player.id} player={player} />
-  ));
+  const players = playerData.map((player) => {
+    return (
+      <PlayerCard
+        key={player.id}
+        player={player}
+        active={player.id == activePlayer?.id}
+      />
+    );
+  });
 
   const playerInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setPlayerName(event.target.value);

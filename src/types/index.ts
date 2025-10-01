@@ -2,12 +2,12 @@ export interface Player {
   id: number;
   name: string;
   score: number;
-  active: boolean;
+  matches: Card[];
 }
 
 export interface Card {
   value: string;
   key: number;
-  found: boolean;
   flipped: boolean;
+  owner?: Player;
 }

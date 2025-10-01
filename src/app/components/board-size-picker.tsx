@@ -1,6 +1,7 @@
 import { Dispatch, SetStateAction } from "react";
 
 const availableButtonSizes = {
+  Xs: 2, // 4
   Small: 4, // 16
   Medium: 5, // 25 -1
   Large: 6, // 36
