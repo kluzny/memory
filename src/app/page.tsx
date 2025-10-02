@@ -16,7 +16,9 @@ import {
   getNextState,
 } from "@/types/states";
 
-const DEBUG = false; // TODO: always false
+import { useSearchParams } from "next/navigation";
+
+const DEBUG = false; // always false
 
 function bigRandInt() {
   return Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
@@ -36,6 +38,13 @@ const scaffoldPlayer: (name: string) => Player = (name: string) => {
 };
 
 export default function Home() {
+  const searchParams = useSearchParams();
+
+  let isDebugging = false;
+  if (searchParams.get("debug") || DEBUG) {
+    isDebugging = true;
+  }
+
   const [state, setState] = useState<MachineState>(MachineStates.setup);
   const [boardSize, setBoardSize] = useState<number>(4);
   const [playerData, setPlayerData] = useState<Player[]>([]);
@@ -192,13 +201,13 @@ export default function Home() {
   }, [cards]);
 
   return (
-    <DebugContext.Provider value={DEBUG}>
+    <DebugContext.Provider value={isDebugging}>
       <div className="container mx-auto">
         <nav className="flex items-baseline justify-center space-x-2 text-blue-700">
           <h1 className="text-6xl my-4">Memory!</h1>
           <h2 className="italic text-2xl">A concentration game</h2>
         </nav>
-        {DEBUG && (
+        {isDebugging && (
           <div className="w-full mb-8 p-2 bg-[repeating-linear-gradient(45deg,_#facc15_0px,_#facc15_10px,_#000_10px,_#000_20px)]">
             <header className="bg-yellow-200 p-2 flex justify-between items-center">
               <p>Turn: {turn}</p>
