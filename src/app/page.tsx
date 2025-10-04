@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useReducer, useCallback } from "react";
 
 import Setup from "@/app/components/setup";
 import Players from "@/app/components/players";
@@ -21,6 +21,56 @@ import {
 import { useSearchParams } from "next/navigation";
 
 const DEBUG = false; // always false
+
+interface GameState {
+  selections: Card[];
+  isProcessing: boolean;
+  message: string;
+}
+
+type GameAction =
+  | { type: "SELECT_CARD"; card: Card }
+  | { type: "CLEAR_SELECTIONS" }
+  | { type: "SET_PROCESSING"; isProcessing: boolean }
+  | { type: "SET_MESSAGE"; message: string }
+  | { type: "RESET_TURN" };
+
+function gameStateReducer(state: GameState, action: GameAction): GameState {
+  switch (action.type) {
+    case "SELECT_CARD":
+      if (state.isProcessing || state.selections.length >= 2) {
+        return state;
+      }
+      return {
+        ...state,
+        selections: [...state.selections, action.card],
+      };
+    case "CLEAR_SELECTIONS":
+      return {
+        ...state,
+        selections: [],
+        isProcessing: false,
+      };
+    case "SET_PROCESSING":
+      return {
+        ...state,
+        isProcessing: action.isProcessing,
+      };
+    case "SET_MESSAGE":
+      return {
+        ...state,
+        message: action.message,
+      };
+    case "RESET_TURN":
+      return {
+        ...state,
+        selections: [],
+        isProcessing: false,
+      };
+    default:
+      return state;
+  }
+}
 
 function bigRandInt() {
   return Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
@@ -54,11 +104,14 @@ export default function Home() {
   const [initialPlayerOffset, setInitialPlayerOffset] = useState<number>(0);
   const [turn, setTurn] = useState<number>(0);
   const [currentPlayer, setCurrentPlayer] = useState<Player>();
-  const [selections, setSelections] = useState<Card[]>([]);
-  const [message, setMessage] = useState<string>("");
-  const immutableRef = useRef<number>(0);
+  const [gameState, dispatch] = useReducer(gameStateReducer, {
+    selections: [],
+    isProcessing: false,
+    message: "",
+  });
 
   const fireworks = useRef<FireworksHandlers>(null);
+  const immutableRef = useRef(gameState.isProcessing);
 
   let topScore = 0;
   playerData.forEach((player) => {
@@ -80,10 +133,10 @@ export default function Home() {
     ]);
   };
 
-  const nextPlayer = () => {
+  const nextPlayer = useCallback(() => {
     const nextPlayerIndex = (turn + initialPlayerOffset) % playerData.length;
     return playerData[nextPlayerIndex];
-  };
+  }, [turn, initialPlayerOffset, playerData]);
 
   const startGame = () => {
     console.log("startGame");
@@ -102,56 +155,69 @@ export default function Home() {
     setState((state) => getNextState(state, MachineActions.reset));
   };
 
-  const updateCard = (updatedCard: Card) => {
-    const newCards = cards.map((card) => {
-      if (card.key == updatedCard.key) {
-        return updatedCard;
-      } else {
-        return card;
-      }
-    });
+  const updateCard = useCallback((updatedCard: Card) => {
+    setCards((currentCards) =>
+      currentCards.map((card) => {
+        if (card.key == updatedCard.key) {
+          return updatedCard;
+        } else {
+          return card;
+        }
+      })
+    );
+  }, []);
 
-    setCards(newCards);
-  };
-
-  const addMatchToPlayer = () => {
+  const addMatchToPlayer = useCallback(() => {
     if (!currentPlayer) return;
 
     currentPlayer.score += 1;
 
-    selections.forEach((card) => {
+    gameState.selections.forEach((card) => {
       currentPlayer.matches.push(card);
       card.owner = currentPlayer; // TODO: animate cards leaving
       updateCard(card);
     });
-  };
+  }, [currentPlayer, gameState.selections, updateCard]);
 
-  const nextTurn = () => {
+  const nextTurn = useCallback(() => {
     setTurn((currentTurnCount) => currentTurnCount + 1);
     const _nextPlayer: Player = nextPlayer();
     setCurrentPlayer(_nextPlayer);
-    setSelections([]);
-    setMessage(`Choose a card ${_nextPlayer.name}`);
-  };
+    dispatch({ type: "RESET_TURN" });
+    dispatch({
+      type: "SET_MESSAGE",
+      message: `Choose a card ${_nextPlayer.name}`,
+    });
+  }, [nextPlayer]);
 
-  const goAgain = () => {
-    setSelections([]);
-    setMessage(`Choose a card ${currentPlayer?.name}`);
-  };
+  const goAgain = useCallback(() => {
+    dispatch({ type: "CLEAR_SELECTIONS" });
+    dispatch({
+      type: "SET_MESSAGE",
+      message: `Choose a card ${currentPlayer?.name}`,
+    });
+  }, [currentPlayer]);
 
-  const resetBoard = () => {
+  const resetBoard = useCallback(() => {
     // TODO: animate flips
-    selections.forEach((card: Card) => {
+    gameState.selections.forEach((card: Card) => {
       card.flipped = false;
       updateCard(card);
     });
-  };
+  }, [gameState.selections, updateCard]);
 
-  const flipCard = (card: Card) => {
-    card.flipped = true;
-    updateCard(card);
-    setSelections((current) => [...current, card]);
-  };
+  const flipCard = useCallback(
+    (card: Card) => {
+      if (gameState.isProcessing || gameState.selections.length >= 2) {
+        return;
+      }
+
+      card.flipped = true;
+      updateCard(card);
+      dispatch({ type: "SELECT_CARD", card });
+    },
+    [gameState.isProcessing, gameState.selections.length, updateCard]
+  );
 
   const randomizeStartingPlayer = () => {
     setInitialPlayerOffset(randomArrayIndex(playerData));
@@ -179,32 +245,31 @@ export default function Home() {
 
   useEffect(() => {
     const checkForMatch = () => {
-      console.log({ selections });
+      console.log({ selections: gameState.selections });
 
-      if (selections.length < 2) {
-        // immutableRef.current = false;
+      if (gameState.selections.length < 2) {
         return;
       }
 
-      if (selections[0].value === selections[1].value) {
-        setMessage("Match Found!");
+      dispatch({ type: "SET_PROCESSING", isProcessing: true });
+
+      if (gameState.selections[0].value === gameState.selections[1].value) {
+        dispatch({ type: "SET_MESSAGE", message: "Match Found!" });
         addMatchToPlayer();
         setTimeout(() => {
-          immutableRef.current = 0;
           goAgain();
-        }, 2000);
+        }, 400);
       } else {
-        setMessage("Sorry, No Match");
+        dispatch({ type: "SET_MESSAGE", message: "Sorry, No Match" });
         setTimeout(() => {
           resetBoard();
           nextTurn();
-          immutableRef.current = 0;
-        }, 2000);
+        }, 600);
       }
     };
 
     checkForMatch();
-  }, [selections]);
+  }, [gameState.selections, addMatchToPlayer, goAgain, resetBoard, nextTurn]);
 
   useEffect(() => {
     if (cards.length < 1 || state === MachineStates.win) {
@@ -215,7 +280,11 @@ export default function Home() {
     if (unclaimedCards.length == 0) {
       win();
     }
-  }, [cards]);
+  }, [cards, state]);
+
+  useEffect(() => {
+    immutableRef.current = gameState.isProcessing;
+  }, [gameState.isProcessing]);
 
   useEffect(() => {
     if (state != MachineStates.win) {
@@ -283,12 +352,17 @@ export default function Home() {
             )}
             {state === MachineStates.playing && (
               <>
-                <header className="text-center text-2xl mb-4">{message}</header>
+                <header className="text-center text-2xl mb-4">
+                  {gameState.message}
+                </header>
                 <Board
                   immutableRef={immutableRef}
                   boardSize={boardSize}
                   cards={cards}
                   flipCard={flipCard}
+                  canSelect={
+                    !gameState.isProcessing && gameState.selections.length < 2
+                  }
                 />
               </>
             )}
