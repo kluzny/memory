@@ -36,7 +36,7 @@ export default function StatefulCard({
     });
   };
 
-  if (card.owner) {
+  if (card.owner || !card.dealt) {
     return (
       <div
         className={`${size} rounded-lg border-4 border-orange-200 bg-orange-200`}

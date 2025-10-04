@@ -6,7 +6,7 @@ import Setup from "@/app/components/setup";
 import Players from "@/app/components/players";
 import Board from "@/app/components/board";
 import { Player, Card } from "@/types";
-import generateCards from "@/utilities/deck-builder";
+import { cardCount, generateCards } from "@/utilities/deck-builder";
 import { DebugContext } from "@/contexts/DebugContext";
 import { Fireworks } from "@fireworks-js/react";
 import type { FireworksHandlers } from "@fireworks-js/react";
@@ -56,6 +56,7 @@ export default function Home() {
   const [currentPlayer, setCurrentPlayer] = useState<Player>();
   const [selections, setSelections] = useState<Card[]>([]);
   const [message, setMessage] = useState<string>("");
+
   const immutableRef = useRef<number>(0);
 
   const fireworks = useRef<FireworksHandlers>(null);
@@ -103,15 +104,11 @@ export default function Home() {
   };
 
   const updateCard = (updatedCard: Card) => {
-    const newCards = cards.map((card) => {
-      if (card.key == updatedCard.key) {
-        return updatedCard;
-      } else {
-        return card;
-      }
+    setCards((current) => {
+      return current.map((card) => {
+        return card.key == updatedCard.key ? updatedCard : card;
+      });
     });
-
-    setCards(newCards);
   };
 
   const addMatchToPlayer = () => {
@@ -164,10 +161,29 @@ export default function Home() {
     });
   };
 
+  const dealCards = (someCards: Card[]) => {
+    const RUNTIME = 2000.0;
+    const numberOfCards = cardCount(boardSize);
+    const timePerCard = RUNTIME / numberOfCards;
+    console.log({ timePerCard, numberOfCards });
+
+    let timer = 0;
+    someCards.forEach((card) => {
+      timer += timePerCard;
+      setTimeout(() => {
+        console.log(`dealing: ${card.value}`);
+        card.dealt = true;
+        updateCard(card);
+      }, timer);
+    });
+  };
+
   const resetGame = () => {
     setTurn(0);
     resetPlayerScores();
-    setCards(generateCards(boardSize));
+    const newCards = generateCards(boardSize);
+    setCards(newCards);
+    dealCards(newCards);
     randomizeStartingPlayer();
     nextTurn();
   };
@@ -175,6 +191,7 @@ export default function Home() {
   const scaffoldPlayers = () => {
     addPlayer("twitchbot4000");
     addPlayer("jeanegrey");
+    addPlayer("poopuhchoo");
   };
 
   useEffect(() => {

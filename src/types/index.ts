@@ -10,4 +10,5 @@ export interface Card {
   key: number;
   flipped: boolean;
   owner?: Player;
+  dealt: boolean;
 }
