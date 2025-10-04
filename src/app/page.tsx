@@ -8,6 +8,8 @@ import Board from "@/app/components/board";
 import { Player, Card } from "@/types";
 import generateCards from "@/utilities/deck-builder";
 import { DebugContext } from "@/contexts/DebugContext";
+import { Fireworks } from "@fireworks-js/react";
+import type { FireworksHandlers } from "@fireworks-js/react";
 
 import {
   MachineState,
@@ -56,6 +58,20 @@ export default function Home() {
   const [message, setMessage] = useState<string>("");
   const immutableRef = useRef(false);
 
+  const fireworks = useRef<FireworksHandlers>(null);
+
+  let topScore = 0;
+  playerData.forEach((player) => {
+    if (player.score > topScore) {
+      topScore = player.score;
+    }
+  });
+
+  const winners = playerData.filter((player) => player.score == topScore);
+  const winnerList = winners.map((winner) => (
+    <li key={winner.id}>{winner.name}</li>
+  ));
+
   const addPlayer = (name: string) => {
     console.log(`adding player: ${name}`);
     setPlayerData((currentPlayerData) => [
@@ -70,13 +86,14 @@ export default function Home() {
   };
 
   const startGame = () => {
-    console.log("starting game");
+    console.log("startGame");
     setState((state) => getNextState(state, MachineActions.start));
     resetGame();
   };
 
   const win = () => {
     console.log("win");
+
     setState((state) => getNextState(state, MachineActions.finish));
   };
 
@@ -200,9 +217,29 @@ export default function Home() {
     }
   }, [cards]);
 
+  useEffect(() => {
+    if (state != MachineStates.win) {
+      if (fireworks.current && fireworks.current.isRunning) {
+        fireworks.current.stop();
+      }
+
+      return;
+    }
+
+    if (fireworks.current && !fireworks.current.isRunning) {
+      fireworks.current.start();
+    }
+  }, [state]);
+
   return (
     <DebugContext.Provider value={isDebugging}>
       <div className="container mx-auto">
+        {state === MachineStates.win && (
+          <Fireworks
+            ref={fireworks}
+            className="h-full w-full pointer-events-none absolute"
+          />
+        )}
         <nav className="flex items-baseline justify-center space-x-2 text-blue-700">
           <h1 className="text-6xl my-4">Memory!</h1>
           <h2 className="italic text-2xl">A concentration game</h2>
@@ -260,12 +297,10 @@ export default function Home() {
                 <h1 className="text-4xl animate_animated animate_rotateIn">
                   Congratulations
                 </h1>
-                <h1 className="text-8xl animate__animated animate__pulse animate__infinite">
-                  {currentPlayer?.name}!
-                </h1>
-                <h2 className="text-2xl">
-                  You won with {currentPlayer?.score} Points.
-                </h2>
+                <ul className="text-8xl text-center animate__animated animate__pulse animate__infinite">
+                  {winnerList}
+                </ul>
+                <h2 className="text-2xl">You won with {topScore} Points.</h2>
                 <button
                   className="px-4 py-2 border-2 border-blue-500 rounded-lg bg-white hover:bg-pink-200 hover:border-pink-500"
                   onClick={setupGame}
