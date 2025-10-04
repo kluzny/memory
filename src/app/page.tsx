@@ -56,7 +56,7 @@ export default function Home() {
   const [currentPlayer, setCurrentPlayer] = useState<Player>();
   const [selections, setSelections] = useState<Card[]>([]);
   const [message, setMessage] = useState<string>("");
-  const immutableRef = useRef(false);
+  const immutableRef = useRef<number>(0);
 
   const fireworks = useRef<FireworksHandlers>(null);
 
@@ -150,7 +150,7 @@ export default function Home() {
   const flipCard = (card: Card) => {
     card.flipped = true;
     updateCard(card);
-    setSelections([...selections, card]);
+    setSelections((current) => [...current, card]);
   };
 
   const randomizeStartingPlayer = () => {
@@ -182,7 +182,7 @@ export default function Home() {
       console.log({ selections });
 
       if (selections.length < 2) {
-        immutableRef.current = false;
+        // immutableRef.current = false;
         return;
       }
 
@@ -190,7 +190,7 @@ export default function Home() {
         setMessage("Match Found!");
         addMatchToPlayer();
         setTimeout(() => {
-          immutableRef.current = false;
+          immutableRef.current = 0;
           goAgain();
         }, 2000);
       } else {
@@ -198,7 +198,7 @@ export default function Home() {
         setTimeout(() => {
           resetBoard();
           nextTurn();
-          immutableRef.current = false;
+          immutableRef.current = 0;
         }, 2000);
       }
     };

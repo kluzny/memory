@@ -3,7 +3,7 @@ import StatefulCard from "./stateful-card";
 import type { RefObject } from "react";
 
 interface BoardProps {
-  immutableRef: RefObject<boolean>;
+  immutableRef: RefObject<number>;
   cards: Card[];
   boardSize: number;
   flipCard: (card: Card) => void;

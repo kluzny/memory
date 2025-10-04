@@ -5,7 +5,7 @@ import { useContext } from "react";
 import { DebugContext } from "@/contexts/DebugContext";
 
 interface StatefulCardProps {
-  immutableRef: RefObject<boolean>;
+  immutableRef: RefObject<number>;
   card: Card;
   flipCard: (card: Card) => void;
 }
@@ -24,11 +24,11 @@ export default function StatefulCard({
 
   const animateCardFlip = (event: React.MouseEvent) => {
     const element = event.target as HTMLElement;
-    if (immutableRef.current) {
+    if (immutableRef.current > 1) {
       console.log("immutable: ignoring input");
       return;
     } else {
-      immutableRef.current = true;
+      immutableRef.current++;
     }
 
     animateCSS(element, "flipOutY").then(() => {
